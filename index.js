@@ -15,7 +15,7 @@ const options = {
     useUnifiedTopology: true
 };
 
-const url = "mongodb://admin:coegsekali1@144.91.80.83:27017/corona";
+const url = "";
 
 let db;
 
@@ -105,26 +105,23 @@ client.on('message', async msg => {
         console.log(dataUser, 'info user')
         if(msg.body && dataUser.length < 1){
             dataUser.push(msg.from);
-            const insert = await insertUser(db, msg);
-            console.log(insert)
-            if (msg.type === 'chat') {
-                const message = 
-                `
-                *Maaf Saya Sedang Offline*
+            await insertUser(db, msg);
+            const message = 
+            `
+            *Maaf Saya Sedang Offline*
 
-                Saya akan membalas dalam
-                beberapa menit.
+            Saya akan membalas dalam
+            beberapa menit.
 
-                Owh iya kalian juga bisa 
-                mengetahui info corona 
-                terbaru di Indonesia 
-                dengan mengirim *!corona* 
-                ke saya.
-                
-                Terimakasih.
-                `;
-                msg.reply(message);
-            }
+            Owh iya kalian juga bisa 
+            mengetahui info corona 
+            terbaru di Indonesia 
+            dengan mengirim *!corona* 
+            ke saya.
+            
+            Terimakasih.
+            `;
+            client.sendMessage(msg.from, message);
         }
 
         if (msg.body == '!corona') {
