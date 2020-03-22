@@ -106,33 +106,40 @@ client.on('message', async msg => {
         if(msg.body && dataUser.length < 1){
             dataUser.push(msg.from);
             await insertUser(db, msg);
-            const message = 
-            `
-            *Maaf Saya Sedang Offline*
-
-            Saya akan membalas dalam
-            beberapa menit.
-
-            Owh iya kalian juga bisa 
-            mengetahui info corona 
-            terbaru di Indonesia 
-            dengan mengirim *!corona* 
-            ke saya.
-            
-            Terimakasih.
-            `;
-            client.sendMessage(msg.from, message);
+            let chat = await msg.getChat();
+            if(!chat.isGroup) {
+                const message = 
+                `
+                *Maaf Saya Sedang Offline*
+    
+                Saya akan membalas dalam
+                beberapa menit.
+    
+                Owh iya kalian juga bisa 
+                mengetahui info corona 
+                terbaru di Indonesia 
+                dengan mengirim *!corona* 
+                ke saya.
+                
+                Terimakasih.
+                `;
+                client.sendMessage(msg.from, message);
+            }
+          
         }
 
         if (msg.body == '!corona') {
             // Send a new message as a reply to the current one
             const dataCorona = await getCoronaIndonesia();
-            const message = 
-            `
-            *Corona Detail Di Indonesia*\n\n*Update Terakhir : ${moment(dataCorona.metadata.lastUpdatedAt).format('DD/MM/YY hh:mm:ss')}*\n\nTerkonfirmasi: ${dataCorona.confirmed.value} 😧\nDalam Perawatan: ${dataCorona.activeCare.value} 👩‍⚕\nSembuh: ${dataCorona.recovered.value} 😍\nMeninggal: ${dataCorona.deaths.value} 😢
-            \n\n Info Lebih lanjut : https://kawalcovid19.id/\n\nAyo Cegah corona dengan *#DirumahAja*
-            `;
-            msg.reply(message);
+            let chat = await msg.getChat();
+            if(!chat.isGroup) {
+                const message = 
+                `
+                *Corona Detail Di Indonesia*\n\n*Update Terakhir : ${moment(dataCorona.metadata.lastUpdatedAt).format('DD/MM/YY hh:mm:ss')}*\n\nTerkonfirmasi: ${dataCorona.confirmed.value} 😧\nDalam Perawatan: ${dataCorona.activeCare.value} 👩‍⚕\nSembuh: ${dataCorona.recovered.value} 😍\nMeninggal: ${dataCorona.deaths.value} 😢
+                \n\n Info Lebih lanjut : https://kawalcovid19.id/\n\nAyo Cegah corona dengan *#DirumahAja*
+                `;
+                msg.reply(message);
+            }
         }
    
     
