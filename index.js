@@ -1,8 +1,8 @@
 const fs = require('fs');
 const { Client, Location } = require('whatsapp-web.js');
-const fetch = require('node-fetch');
 const moment = require('moment');
-const USERS = require('./user_session.json');
+const helpers = require('./lib/helpers');
+const tmpData = require('./tools-test/tmpData.json');
 const MongoClient = require('mongodb').MongoClient;
 
 
@@ -18,19 +18,6 @@ const options = {
 const url = "";
 
 let db;
-
-const getCoronaIndonesia = () => new Promise((resolve, reject) => {
-    fetch('https://kawalcovid19.harippe.id/api/summary', {
-        method:'GET'
-    })
-    .then(res => res.json())
-    .then(res => {
-        resolve(res)
-    })
-    .catch(err => {
-        reject(err)
-    });
-});
 
 const getUsers = (db, author) =>
     new Promise((resolve, reject) => {
@@ -106,96 +93,61 @@ client.on('message', async msg => {
         if(msg.body && dataUser.length < 1){
             dataUser.push(msg.from);
             await insertUser(db, msg);
+        }
+
+        if (msg.body == '/help') {
             let chat = await msg.getChat();
             if(!chat.isGroup) {
                 const message = 
-                `
-                *Maaf Saya Sedang Offline*
-    
-                Saya akan membalas dalam
-                beberapa menit.
-    
-                Owh iya kalian juga bisa 
-                mengetahui info corona 
-                terbaru di Indonesia 
-                dengan mengirim *!corona* 
-                ke saya.
-                
-                Terimakasih.
+                `Command/Perintah :\n\nKetikan perintah perintah ini agar bisa memunculkan menu\n\n1. !corona _untuk melihat seluruh kasus corona_\n2. !corona *nama negara* _misal *!corona indonesia* memunculkan kasus corona berdasarkan negara_\n\n
                 `;
                 client.sendMessage(msg.from, message);
             }
           
         }
 
+        if (/\s/.test(msg.body)) {
+            const newBody = msg.body.split(' ')[1].toLowerCase();
+            const coronaData = await helpers.getAllCorona();
+            const findData = coronaData.find((data) => data.Location == newBody);
+            if (findData) {
+                let chat = await msg.getChat();
+                if(!chat.isGroup) {
+                    const message = 
+                    `
+                    *Corona Detail ${newBody}*\n\nTerkonfirmasi: ${findData['Confirmed cases']} 😧\nSembuh: ${findData.Recovered} 😍\nMeninggal: ${findData.Deaths} 😢
+                    \n\nKetik */help*\n\nAyo Cegah corona dengan *#DirumahAja*
+                    `;
+                    msg.reply(message);
+                }
+            }else{
+                let chat = await msg.getChat();
+                if(!chat.isGroup) {
+                    const message = 
+                    `
+                    *OOps Nama Negara tidak ditemukan :'(*\n\nKetik */help*\n\nAyo Cegah corona dengan *#DirumahAja*
+                    `;
+                    msg.reply(message);
+                }
+            }
+        }
+
         if (msg.body == '!corona') {
             // Send a new message as a reply to the current one
-            const dataCorona = await getCoronaIndonesia();
+            const dataCorona = await helpers.getCoronaIndonesia();
+            const coronaData = await helpers.getAllCorona();
             let chat = await msg.getChat();
             if(!chat.isGroup) {
                 const message = 
                 `
-                *Corona Detail Di Indonesia*\n\n*Update Terakhir : ${moment(dataCorona.metadata.lastUpdatedAt).format('DD/MM/YY hh:mm:ss')}*\n\nTerkonfirmasi: ${dataCorona.confirmed.value} 😧\nDalam Perawatan: ${dataCorona.activeCare.value} 👩‍⚕\nSembuh: ${dataCorona.recovered.value} 😍\nMeninggal: ${dataCorona.deaths.value} 😢
-                \n\n Info Lebih lanjut : https://kawalcovid19.id/\n\nAyo Cegah corona dengan *#DirumahAja*
+                *Corona Detail*\n\n*Update Terakhir : ${moment(dataCorona.metadata.lastUpdatedAt).format('DD/MM/YY hh:mm:ss')}*\n\n*Indonesia :*\n\nTerkonfirmasi: ${dataCorona.confirmed.value} 😧\nDalam Perawatan: ${dataCorona.activeCare.value} 👩‍⚕\nSembuh: ${dataCorona.recovered.value} 😍\nMeninggal: ${dataCorona.deaths.value} 😢
+                \n\n*Dunia :*\n\nTerkonfirmasi: ${coronaData[0]['Confirmed cases']} 😧\nSembuh: ${coronaData[0].Recovered} 😍\nMeninggal: ${coronaData[0].Deaths} 😢\n\nKetik */help*\n\nAyo Cegah corona dengan *#DirumahAja*
                 `;
                 msg.reply(message);
             }
         }
    
     
-});
-
-client.on('message_create', (msg) => {
-    // Fired on all message creations, including your own
-    if (msg.fromMe) {
-        // do stuff here
-    }
-});
-
-client.on('message_revoke_everyone', async (after, before) => {
-    // Fired whenever a message is deleted by anyone (including you)
-    console.log(after); // message after it was deleted.
-    if (before) {
-        console.log(before); // message before it was deleted.
-    }
-});
-
-client.on('message_revoke_me', async (msg) => {
-    // Fired whenever a message is only deleted in your own view.
-    console.log(msg.body); // message before it was deleted.
-});
-
-client.on('message_ack', (msg, ack) => {
-    /*
-        == ACK VALUES ==
-        ACK_ERROR: -1
-        ACK_PENDING: 0
-        ACK_SERVER: 1
-        ACK_DEVICE: 2
-        ACK_READ: 3
-        ACK_PLAYED: 4
-    */
-
-    if(ack == 3) {
-        // The message was read
-    }
-});
-
-client.on('group_join', (notification) => {
-    // User has joined or been added to the group.
-    console.log('join', notification);
-    notification.reply('User joined.');
-});
-
-client.on('group_leave', (notification) => {
-    // User has left or been kicked from the group.
-    console.log('leave', notification);
-    notification.reply('User left.');
-});
-
-client.on('group_update', (notification) => {
-    // Group picture, subject or description has been updated.
-    console.log('update', notification);
 });
 
 client.on('disconnected', (reason) => {
